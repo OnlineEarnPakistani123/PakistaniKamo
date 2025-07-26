@@ -107,6 +107,9 @@
     <button class="btn" onclick="location.href='withdraw.html'">💸 Withdraw</button>
     <button id="investBtn" class="btn invest" onclick="location.href='investment.html'" style="display: none;">💼 Invest Now</button>
     <p id="investStatus" class="message"></p>
+    <button class="btn" onclick="location.href='withdraw.html'">💸 Withdraw</button>
+    <button id="investBtn" class="btn invest" onclick="location.href='investment.html'" style="display: none;">💼 Invest Now</button>
+    <p id="investStatus" class="message"></p>
     <button class="btn" onclick="logout()">🚪 Logout</button>
   </div>
 
@@ -166,7 +169,7 @@
                 if (userData && !userData.investBonusAdded) {
                   const currentBalance = userData.balance || 0;
                   update(userRef, {
-                    balance: currentBalance + ,
+                    balance: currentBalance + 0,
                     investBonusAdded: true
                   });
                 }
@@ -213,4 +216,5 @@
     };
   </script>
 </body>
+</html>
 </html>
