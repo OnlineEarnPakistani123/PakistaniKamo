@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Online Earning - Home</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Poppins', sans-serif;
+      background: #f9f9f9;
+      color: #333;
+      min-height: 100vh;
+    }
+
+    .top-header {
+      background: #00c46b;
+      color: white;
+      padding: 15px 0;
+      text-align: center;
+      font-size: 20px;
+      font-weight: 700;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .main-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 30px 15px;
+    }
+
+    .container {
+      background: #fff;
+      border-radius: 12px;
+      padding: 30px 20px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .logo {
+      width: 85px;
+      height: 85px;
+      border-radius: 50%;
+      margin-bottom: 15px;
+      border: 3px solid #00c46b;
+      object-fit: cover;
+    }
+
+    h1 {
+      font-size: 24px;
+      color: #00aa6c;
+      margin-bottom: 10px;
+    }
+
+    .quote {
+      font-style: italic;
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 15px;
+      min-height: 20px;
+      transition: opacity 0.8s ease-in-out;
+    }
+
+    .investment-line {
+      font-size: 15px;
+      color: #111;
+      font-weight: 500;
+      background: #d7fbe5;
+      padding: 10px;
+      border-radius: 8px;
+      margin: 15px 0;
+      border-left: 5px solid #00c46b;
+    }
+
+    .buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 15px;
+      align-items: center;
+    }
+
+    .buttons a {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #00c46b;
+      color: white;
+      padding: 12px 18px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 15px;
+      transition: 0.2s ease;
+      box-shadow: 0 3px 10px rgba(0, 196, 107, 0.3);
+    }
+
+    .buttons a:hover {
+      background: #009954;
+      transform: scale(1.05);
+    }
+
+    @media (max-width: 480px) {
+      h1 {
+        font-size: 20px;
+      }
+      .buttons a {
+        font-size: 14px;
+        padding: 11px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Fixed Header -->
+  <div class="top-header">Online Earning App</div>
+
+  <div class="main-wrapper">
+    <div class="container">
+      <img class="logo" src="https://blog.foriedu.com/wp-content/uploads/2024/01/WhatsApp-Image-2024-01-25-at-15.45.54-780x470.jpeg" alt="Online Earning Logo">
+      <h1>Welcome to Online Earning</h1>
+      <p class="quote" id="quote">Loading quote...</p>
+      <p class="investment-line">Start with just Rs. 100 and unlock daily earnings! 💸</p>
+
+      <div class="buttons">
+        <a href="register.html"><i class="fas fa-user-plus"></i> Register</a>
+        <a href="login.html"><i class="fas fa-lock"></i> Login</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const quotes = [
+      "Earn smart, not hard.",
+      "Start small. Earn big. Daily!",
+      "Your earnings start here.",
+      "Invest Rs. 100 and watch your growth!",
+      "Refer friends & grow your income!"
+    ];
+
+    const quoteEl = document.getElementById("quote");
+    let index = 0;
+
+    function showNextQuote() {
+      quoteEl.style.opacity = 0;
+      setTimeout(() => {
+        quoteEl.textContent = quotes[index];
+        quoteEl.style.opacity = 1;
+        index = (index + 1) % quotes.length;
+      }, 400);
+    }
+
+    setInterval(showNextQuote, 3000);
+    showNextQuote();
+  </script>
+
+</body>
+</html>

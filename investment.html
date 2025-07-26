@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Invest - Online Earning</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #e0eafc, #cfdef3);
+      margin: 0;
+      padding: 20px;
+    }
+
+    h2 {
+      color: #00796b;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    form {
+      max-width: 500px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    label {
+      margin-top: 10px;
+      display: block;
+      font-weight: 600;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 15px;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 12px;
+      width: 100%;
+      background-color: #00796b;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #00695c;
+    }
+
+    .notification {
+      background: #d4edda;
+      color: #155724;
+      padding: 10px;
+      border: 1px solid #c3e6cb;
+      margin: 20px auto;
+      border-radius: 5px;
+      max-width: 500px;
+      text-align: center;
+    }
+
+    .method-box {
+      background: #fff;
+      padding: 15px;
+      margin: 0 auto 20px auto;
+      border-left: 5px solid #00796b;
+      border-radius: 8px;
+      max-width: 500px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .method-box p {
+      margin: 5px 0;
+    }
+
+    .copy-input {
+      width: 70%;
+      padding: 8px;
+      font-size: 14px;
+      margin-right: 10px;
+    }
+
+    .copy-btn {
+      padding: 8px 12px;
+      font-size: 14px;
+      background-color: #00796b;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .copy-btn:hover {
+      background-color: #00695c;
+    }
+
+    .history {
+      max-width: 500px;
+      margin: 30px auto 0;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 5px #ccc;
+    }
+
+    .history h3 {
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    .history-entry {
+      margin-bottom: 10px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 5px;
+      font-size: 14px;
+    }
+
+    .status-approved { color: green; font-weight: bold; }
+    .status-pending { color: orange; font-weight: bold; }
+    .status-rejected { color: red; font-weight: bold; }
+
+    @media (max-width: 600px) {
+      .copy-input {
+        width: 100%;
+        margin-bottom: 8px;
+      }
+
+      .copy-btn {
+        width: 100%;
+        margin-top: 5px;
+      }
+
+      .method-box {
+        padding: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Make an Investment</h2>
+  <div id="methods"></div>
+
+  <form id="investmentForm">
+    <label>Select Method:</label>
+    <select id="method" required></select>
+
+    <label>Your Name:</label>
+    <input type="text" id="name" required />
+
+    <label>Your Number:</label>
+    <input type="text" id="number" required />
+
+    <label>Amount (PKR):</label>
+    <input type="number" id="amount" required placeholder="Just (120)" />
+
+    <label>TRX ID:</label>
+    <input type="text" id="trxId" required />
+
+    <button type="submit">Submit Investment</button>
+  </form>
+
+  <div id="statusMsg" class="notification hidden"></div>
+  <div id="approvedMsg" class="notification hidden"></div>
+
+  <div class="history" id="investmentHistory">
+    <h3>Investment History</h3>
+    <div id="historyList"></div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getDatabase, ref, push, set, onValue, update
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import {
+      getAuth, onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCe3q7X34_6cwNvUyLZtyXupyHkpQSImts",
+      authDomain: "online-earning-pakistan-56617.firebaseapp.com",
+      projectId: "online-earning-pakistan-56617",
+      storageBucket: "online-earning-pakistan-56617.appspot.com",
+      messagingSenderId: "790184224806",
+      appId: "1:790184224806:web:1f5064d69be36bf6491ee7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+
+    let currentUid = null;
+
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        currentUid = user.uid;
+        loadMethods();
+        loadInvestmentHistory();
+        checkApprovalStatus();
+      } else {
+        location.href = "login.html";
+      }
+    });
+
+    function loadMethods() {
+      const methodSelect = document.getElementById("method");
+      const methodsDiv = document.getElementById("methods");
+      const methodRef = ref(db, "admin/investmentMethods");
+
+      onValue(methodRef, snapshot => {
+        methodSelect.innerHTML = "";
+        methodsDiv.innerHTML = "";
+
+        snapshot.forEach(child => {
+          const data = child.val();
+          const uniqueId = `copy-${data.method.replace(/\s+/g, '')}`;
+
+          methodSelect.innerHTML += `<option value="${data.method}">${data.method}</option>`;
+
+          methodsDiv.innerHTML += `
+            <div class="method-box">
+              <p><strong>${data.method}</strong></p>
+              <p>Account Name: ${data.name}</p>
+              <p>
+                Account Number:
+                <input type="text" id="${uniqueId}" class="copy-input" value="${data.number}" readonly />
+                <button class="copy-btn" onclick="copyToClipboard('${uniqueId}')">Copy</button>
+              </p>
+            </div>
+          `;
+        });
+      });
+    }
+
+    window.copyToClipboard = function(id) {
+      const input = document.getElementById(id);
+      input.select();
+      input.setSelectionRange(0, 99999);
+      document.execCommand("copy");
+      alert("Copied: " + input.value);
+    };
+
+    document.getElementById("investmentForm").addEventListener("submit", async e => {
+      e.preventDefault();
+      const name = document.getElementById("name").value;
+      const number = document.getElementById("number").value;
+      const amount = document.getElementById("amount").value;
+      const trxId = document.getElementById("trxId").value;
+      const method = document.getElementById("method").value;
+
+      const newRef = push(ref(db, `investments/${currentUid}`));
+      await set(newRef, {
+        name,
+        number,
+        amount,
+        trxId,
+        method,
+        status: "pending",
+        timestamp: Date.now()
+      });
+
+      await update(ref(db, `users/${currentUid}`), {
+        investmentStatus: "pending"
+      });
+
+      const statusMsg = document.getElementById("statusMsg");
+      statusMsg.classList.remove("hidden");
+      statusMsg.textContent = "⏳ Pending, wait for approval.";
+      document.getElementById("investmentForm").reset();
+      loadInvestmentHistory();
+    });
+
+    function checkApprovalStatus() {
+      const statusRef = ref(db, `users/${currentUid}/investmentStatus`);
+      onValue(statusRef, snap => {
+        const val = snap.val();
+        if (val === "approved") {
+          const approvedMsg = document.getElementById("approvedMsg");
+          approvedMsg.classList.remove("hidden");
+          approvedMsg.textContent = "✅ Your investment has been approved! Redirecting to dashboard...";
+          setTimeout(() => {
+            window.location.href = "dashboard.html";
+          }, 3000);
+        }
+      });
+    }
+
+    function loadInvestmentHistory() {
+      const listDiv = document.getElementById("historyList");
+      listDiv.innerHTML = "Loading...";
+
+      const invRef = ref(db, `investments/${currentUid}`);
+      onValue(invRef, snapshot => {
+        listDiv.innerHTML = "";
+        if (!snapshot.exists()) {
+          listDiv.innerHTML = "<p>No investment history found.</p>";
+          return;
+        }
+
+        const entries = [];
+        snapshot.forEach(child => {
+          const data = child.val();
+          entries.push(data);
+        });
+
+        entries.sort((a, b) => b.timestamp - a.timestamp);
+
+        entries.forEach(entry => {
+          const date = new Date(entry.timestamp).toLocaleString();
+          let statusClass = "status-pending";
+          if (entry.status === "approved") statusClass = "status-approved";
+          else if (entry.status === "rejected") statusClass = "status-rejected";
+
+          listDiv.innerHTML += `
+            <div class="history-entry">
+              <strong>${entry.method}</strong> | ${entry.amount} PKR<br/>
+              TRX: ${entry.trxId}<br/>
+              Status: <span class="${statusClass}">${entry.status}</span><br/>
+              ${date}
+            </div>
+          `;
+        });
+      });
+    }
+  </script>
+</body>
+</html>

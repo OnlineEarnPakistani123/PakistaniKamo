@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Daily Tasks</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(to right, #74ebd5, #ACB6E5);
+      color: #333;
+      min-height: 100vh;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 25px;
+      color: #333;
+      font-weight: 600;
+    }
+    #message { color: #e74c3c; margin-bottom: 15px; font-weight: 600; text-align: center; }
+    #taskList { max-width: 800px; width: 100%; }
+    .task {
+      background: #ffffff;
+      color: #333;
+      border-radius: 20px;
+      padding: 25px 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 12px 25px rgba(0, 0, 0, 0.1);
+      transition: 0.3s ease;
+    }
+    .task:hover { transform: scale(1.02); }
+    .task h3 { font-size: 1.3em; margin-bottom: 10px; color: #2c3e50; }
+    .task p { margin: 5px 0; font-size: 15px; }
+    .task button {
+      margin-top: 15px;
+      padding: 12px 18px;
+      background: #00a884;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    .task button:hover { background: #00785f; }
+    .task button[disabled] {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+    #loaderContainer {
+      display: flex;
+      justify-content: center;
+      margin: 30px 0;
+    }
+    .loader {
+      width: 50px;
+      height: 50px;
+      border: 6px solid #e0e0e0;
+      border-top: 6px solid #00a884;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    .video-loader {
+      width: 40px;
+      height: 40px;
+      border: 5px solid #e0e0e0;
+      border-top: 5px solid #00a884;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    .video-container {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 215px;
+      background: #fff;
+      margin-bottom: 10px;
+    }
+    .iframe-wrapper {
+      display: none;
+      width: 100%;
+      height: 100%;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @media (max-width: 480px) {
+      .task { padding: 20px 15px; }
+      .task h3 { font-size: 1.1em; }
+      .task button {
+        width: 100%;
+        margin-top: 10px;
+        font-size: 14px;
+      }
+      body { padding: 15px; }
+    }
+    .square-back-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #00a884, #00785f);
+      color: white;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: bold;
+      padding: 15px 20px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+      transition: all 0.3s ease;
+      z-index: 9999;
+      animation: pulseBtn 2s infinite;
+    }
+    .square-back-btn:hover {
+      background: linear-gradient(135deg, #00c896, #005f47);
+      transform: translateY(-3px);
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.25);
+    }
+    @keyframes pulseBtn {
+      0% { box-shadow: 0 0 0 0 rgba(0, 168, 132, 0.5); }
+      70% { box-shadow: 0 0 0 12px rgba(0, 168, 132, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(0, 168, 132, 0); }
+    }
+  </style>
+</head>
+<body>
+  <a href="dashboard.html" class="square-back-btn">Back</a>
+  <h2>Available Tasks</h2>
+  <div id="message"></div>
+  <div id="loaderContainer"><div id="loader" class="loader"></div></div>
+  <div id="taskList"></div>
+
+  <script src="https://www.youtube.com/iframe_api"></script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, get, set, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCe3q7X34_6cwNvUyLZtyXupyHkpQSImts",
+      authDomain: "online-earning-pakistan-56617.firebaseapp.com",
+      databaseURL: "https://online-earning-pakistan-56617-default-rtdb.firebaseio.com",
+      projectId: "online-earning-pakistan-56617",
+      storageBucket: "online-earning-pakistan-56617.appspot.com",
+      messagingSenderId: "790184224806",
+      appId: "1:790184224806:web:1f5064d69be36bf6491ee7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+
+    const taskList = document.getElementById("taskList");
+    const message = document.getElementById("message");
+    const loader = document.getElementById("loader");
+
+    let ytPlayers = {};
+
+    window.onYouTubeIframeAPIReady = () => {
+      // ready
+    };
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = "login.html";
+        return;
+      }
+
+      try {
+        const userRef = ref(db, `users/${user.uid}`);
+        const userSnapshot = await get(userRef);
+        const userData = userSnapshot.val();
+
+        if (!userData || userData.investmentStatus !== "approved") {
+          message.textContent = "⚠️ You must invest and get approved before accessing tasks.";
+          loader.style.display = "none";
+          return;
+        }
+
+        const tasksSnapshot = await get(ref(db, "admin/tasks"));
+        const userTasksSnapshot = await get(ref(db, `users/${user.uid}/tasks`));
+        const completedTasks = userTasksSnapshot.exists() ? userTasksSnapshot.val() : {};
+        const now = Date.now();
+
+        loader.style.display = "none";
+
+        if (tasksSnapshot.exists()) {
+          const tasks = tasksSnapshot.val();
+          for (const taskId in tasks) {
+            const task = tasks[taskId];
+            const reward = parseInt(task.reward) || 0;
+            const lastDone = completedTasks[taskId]?.timestamp || 0;
+            const hoursSince = (now - lastDone) / (1000 * 60 * 60);
+            const canDo = hoursSince >= 24;
+
+            const div = document.createElement("div");
+            div.className = "task";
+            const videoId = task.videoUrl.split("shorts/")[1]?.split("?")[0] || task.videoUrl.split("v=")[1]?.split("&")[0] || "";
+            const iframeId = `player-${taskId}`;
+
+            div.innerHTML = `
+              <h3>${task.title}</h3>
+              <p>${task.description || ""}</p>
+              <p><strong>Reward:</strong> ${reward} PKR</p>
+              <div class="video-container">
+                <div class="video-loader" id="loader-${taskId}"></div>
+                <div id="${iframeId}" class="iframe-wrapper"></div>
+              </div>
+              <button id="start-${taskId}" ${!canDo ? "disabled" : ""}>Start Task</button>
+              <p id="timer-${taskId}" style="display:none">Wait 30s...</p>
+              <button id="complete-${taskId}" style="display:none">Complete Task</button>
+            `;
+            taskList.appendChild(div);
+
+            ytPlayers[taskId] = new YT.Player(iframeId, {
+              height: "215",
+              width: "100%",
+              videoId: videoId,
+              playerVars: { autoplay: 0, controls: 1, enablejsapi: 1 },
+              events: {
+                onReady: () => {
+                  document.getElementById(`loader-${taskId}`).style.display = "none";
+                  document.getElementById(iframeId).style.display = "block";
+                }
+              }
+            });
+
+            const startBtn = document.getElementById(`start-${taskId}`);
+            const timerText = document.getElementById(`timer-${taskId}`);
+            const completeBtn = document.getElementById(`complete-${taskId}`);
+
+            startBtn?.addEventListener("click", () => {
+              const player = ytPlayers[taskId];
+              player.mute();
+              player.playVideo();
+
+              const checkPlay = setInterval(() => {
+                if (player.getPlayerState() === 1) {
+                  clearInterval(checkPlay);
+                  startBtn.disabled = true;
+                  timerText.style.display = "block";
+                  let countdown = 30;
+                  timerText.textContent = `Wait ${countdown}s...`;
+                  const interval = setInterval(() => {
+                    countdown--;
+                    timerText.textContent = `Wait ${countdown}s...`;
+                    if (countdown <= 0) {
+                      clearInterval(interval);
+                      timerText.style.display = "none";
+                      completeBtn.style.display = "inline-block";
+                    }
+                  }, 1000);
+                }
+              }, 500);
+            });
+
+            completeBtn?.addEventListener("click", async () => {
+              completeBtn.disabled = true;
+              await set(ref(db, `users/${user.uid}/tasks/${taskId}`), {
+                timestamp: Date.now()
+              });
+              const newBalance = (userData.balance || 0) + reward;
+              await update(userRef, { balance: newBalance });
+              alert("✅ Task completed! Reward added to your balance.");
+              location.href = "dashboard.html";
+            });
+          }
+        } else {
+          taskList.innerHTML = "<p>No tasks found.</p>";
+        }
+      } catch (error) {
+        console.error("Error loading tasks:", error);
+        message.textContent = "❌ Failed to load tasks.";
+        loader.style.display = "none";
+      }
+    });
+  </script>
+</body>
+</html>

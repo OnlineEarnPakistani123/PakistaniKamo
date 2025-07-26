@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Login - Online Earning</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(to right, #74ebd5, #ACB6E5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .form-box {
+      background: #ffffff;
+      padding: 40px 30px;
+      border-radius: 20px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+      text-align: center;
+      transition: 0.3s ease;
+    }
+
+    .form-box:hover {
+      transform: scale(1.02);
+    }
+
+    .form-box h2 {
+      margin-bottom: 25px;
+      color: #333;
+      font-weight: 600;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px;
+      margin: 12px 0;
+      font-size: 15px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      transition: 0.2s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #00a884;
+      box-shadow: 0 0 5px rgba(0, 168, 132, 0.3);
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #00a884;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 15px;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background: #00785f;
+    }
+
+    a {
+      display: inline-block;
+      margin-top: 10px;
+      color: #00785f;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .msg {
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    .error {
+      color: #e74c3c;
+    }
+
+    .success {
+      color: #2ecc71;
+    }
+
+    .loader {
+      border: 6px solid #f3f3f3;
+      border-top: 6px solid #00a884;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 10px auto;
+      display: none;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 480px) {
+      .form-box {
+        padding: 30px 20px;
+      }
+
+      input, button {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="form-box">
+    <h2>User Login</h2>
+    <form onsubmit="login(event)">
+      <input type="email" id="email" placeholder="Enter your email" required>
+      <input type="password" id="password" placeholder="Enter your password" required>
+      <button type="submit">Login</button>
+    </form>
+    <div class="loader" id="loader"></div>
+    <div id="message" class="msg"></div>
+    <a href="reset.html">Forgot Password?</a>
+    <p>Don't have an account? <a href="register.html">Register here</a></p>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCe3q7X34_6cwNvUyLZtyXupyHkpQSImts",
+      authDomain: "online-earning-pakistan-56617.firebaseapp.com",
+      projectId: "online-earning-pakistan-56617",
+      storageBucket: "online-earning-pakistan-56617.firebasestorage.app",
+      messagingSenderId: "790184224806",
+      appId: "1:790184224806:web:1f5064d69be36bf6491ee7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    window.login = function (e) {
+      e.preventDefault();
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const loader = document.getElementById("loader");
+      const message = document.getElementById("message");
+
+      message.innerText = '';
+      message.className = 'msg';
+      loader.style.display = 'block';
+
+      signInWithEmailAndPassword(auth, email, password)
+        .then(() => {
+          loader.style.display = 'none';
+          message.classList.add('success');
+          message.innerText = "✅ Login successful!";
+          setTimeout(() => {
+            window.location.href = "dashboard.html";
+          }, 1200);
+        })
+        .catch((error) => {
+          loader.style.display = 'none';
+          message.classList.add('error');
+
+          if (error.code === 'auth/user-not-found') {
+            message.innerText = "❌ Account not found";
+          } else if (error.code === 'auth/wrong-password') {
+            message.innerText = "❌ Email or password is incorrect";
+          } else if (error.code === 'auth/invalid-email') {
+            message.innerText = "❌ Invalid email format";
+          } else {
+            message.innerText = "❌ " + error.message;
+          }
+        });
+    };
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Register - Online Earning</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(to right, #74ebd5, #ACB6E5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .form-box {
+      background: #ffffff;
+      padding: 40px 30px;
+      border-radius: 20px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+      text-align: center;
+      transition: 0.3s ease;
+    }
+
+    .form-box:hover {
+      transform: scale(1.02);
+    }
+
+    .form-box h2 {
+      margin-bottom: 25px;
+      color: #333;
+      font-weight: 600;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px;
+      margin: 12px 0;
+      font-size: 15px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      transition: 0.2s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #00a884;
+      box-shadow: 0 0 5px rgba(0, 168, 132, 0.3);
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #00a884;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 15px;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background: #00785f;
+    }
+
+    a {
+      display: block;
+      margin-top: 12px;
+      color: #00785f;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .error, .success {
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    .error {
+      color: #e74c3c;
+    }
+
+    .success {
+      color: #2ecc71;
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .loader {
+      border: 6px solid #f3f3f3;
+      border-top: 6px solid #00a884;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 480px) {
+      .form-box {
+        padding: 30px 20px;
+      }
+
+      input, button {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="overlay" id="loaderOverlay">
+    <div class="loader"></div>
+  </div>
+
+  <div class="form-box">
+    <h2>Create Account</h2>
+    <input type="email" id="email" placeholder="Email" required />
+    <input type="password" id="password" placeholder="Password" required />
+    <input type="text" id="referralCode" placeholder="Referral Code (optional)" />
+    <button id="registerBtn">Register</button>
+    <a href="login.html">Already have an account? Login</a>
+    <a href="reset.html">Forgot Password?</a>
+    <p class="error" id="error"></p>
+    <p class="success" id="success"></p>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getDatabase, ref, set, get, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCe3q7X34_6cwNvUyLZtyXupyHkpQSImts",
+      authDomain: "online-earning-pakistan-56617.firebaseapp.com",
+      databaseURL: "https://online-earning-pakistan-56617-default-rtdb.firebaseio.com",
+      projectId: "online-earning-pakistan-56617",
+      storageBucket: "online-earning-pakistan-56617.appspot.com",
+      messagingSenderId: "790184224806",
+      appId: "1:790184224806:web:1f5064d69be36bf6491ee7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const referralInput = document.getElementById("referralCode");
+    const registerBtn = document.getElementById("registerBtn");
+    const errorEl = document.getElementById("error");
+    const successEl = document.getElementById("success");
+    const loaderOverlay = document.getElementById("loaderOverlay");
+
+    registerBtn.addEventListener("click", async () => {
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+      const referralCode = referralInput.value.trim();
+      errorEl.textContent = "";
+      successEl.textContent = "";
+      loaderOverlay.style.display = "flex";
+
+      if (!email || !password) {
+        errorEl.textContent = "Please fill all required fields.";
+        loaderOverlay.style.display = "none";
+        return;
+      }
+
+      let referrerUid = null;
+
+      if (referralCode !== "") {
+        const referralSnap = await get(ref(db, "referralCodes/" + referralCode));
+        if (referralSnap.exists()) {
+          referrerUid = referralSnap.val();
+        } else {
+          errorEl.textContent = "Invalid referral code.";
+          loaderOverlay.style.display = "none";
+          return;
+        }
+      }
+
+      try {
+        const userCred = await createUserWithEmailAndPassword(auth, email, password);
+        const uid = userCred.user.uid;
+        const myReferralCode = uid.slice(-6).toUpperCase();
+
+        await set(ref(db, "users/" + uid), {
+          email: email,
+          uid: uid,
+          referralCode: myReferralCode,
+          referrerUid: referrerUid || null,
+          referralEarning: 0,
+          balance: 0,
+          investmentStatus: "none"
+        });
+
+        await set(ref(db, "referralCodes/" + myReferralCode), uid);
+
+        if (referrerUid) {
+          const referralId = Date.now();
+          await set(ref(db, `referrals/${referrerUid}/${referralId}`), {
+            referredUid: uid,
+            email: email,
+            status: "pending", // investment not done yet
+            time: new Date().toISOString()
+          });
+        }
+
+        loaderOverlay.style.display = "none";
+        successEl.textContent = "Account created successfully! Redirecting...";
+        setTimeout(() => {
+          window.location.href = "login.html";
+        }, 2000);
+      } catch (err) {
+        loaderOverlay.style.display = "none";
+        errorEl.textContent = err.message;
+      }
+    });
+  </script>
+</body>
+</html>
