@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboard - Online Earning</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(to right, #74ebd5, #ACB6E5);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: #ffffff;
+      padding: 40px 30px;
+      border-radius: 20px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+      text-align: center;
+      transition: 0.3s ease;
+    }
+
+    .container:hover {
+      transform: scale(1.01);
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      color: #333;
+      font-weight: 600;
+    }
+
+    .balance {
+      background: #f2f2f2;
+      color: #333;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 500;
+      margin-bottom: 20px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      margin: 10px 0;
+      background-color: #00a884;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .btn:hover {
+      background-color: #00785f;
+    }
+
+    .btn.invest {
+      background-color: #f39c12;
+    }
+
+    .btn.invest:hover {
+      background-color: #d78e0c;
+    }
+
+    .message {
+      margin-top: 12px;
+      font-size: 15px;
+      color: #e74c3c;
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 30px 20px;
+      }
+
+      .btn {
+        font-size: 15px;
+        padding: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Welcome to Dashboard</h2>
+    <div class="balance">Balance: <span id="balance">Loading...</span></div>
+    <button id="taskBtn" class="btn">📝 Start Tasks</button>
+    <button class="btn" onclick="location.href='referral.html'">👨‍👩‍👧‍👦 Referral</button>
+    <button class="btn" onclick="location.href='withdraw.html'">💸 Withdraw</button>
+    <button id="investBtn" class="btn invest" onclick="location.href='investment.html'" style="display: none;">💼 Invest Now</button>
+    <p id="investStatus" class="message"></p>
+    <button class="btn" onclick="logout()">🚪 Logout</button>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCe3q7X34_6cwNvUyLZtyXupyHkpQSImts",
+      authDomain: "online-earning-pakistan-56617.firebaseapp.com",
+      projectId: "online-earning-pakistan-56617",
+      storageBucket: "online-earning-pakistan-56617.firebasestorage.app",
+      messagingSenderId: "790184224806",
+      appId: "1:790184224806:web:1f5064d69be36bf6491ee7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    const balanceEl = document.getElementById("balance");
+    const taskBtn = document.getElementById("taskBtn");
+    const investStatus = document.getElementById("investStatus");
+    const investBtn = document.getElementById("investBtn");
+
+    let currentUID = null;
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        currentUID = user.uid;
+
+        const uid = user.uid;
+        get(ref(db, "users/" + uid)).then((snapshot) => {
+          const data = snapshot.val() || {};
+          const taskBalance = data.balance || 0;
+          const referralEarning = data.referralEarning || 0;
+          const totalBalance = taskBalance + referralEarning;
+          balanceEl.innerText = totalBalance + " PKR";
+        });
+
+        get(ref(db, "investments/" + uid)).then((snap) => {
+          if (snap.exists()) {
+            let hasApproved = false;
+            snap.forEach(child => {
+              const status = child.val().status;
+              if (status === "approved") hasApproved = true;
+            });
+
+            if (hasApproved) {
+              investStatus.innerText = "";
+              investBtn.style.display = "none";
+
+              const userRef = ref(db, "users/" + uid);
+              get(userRef).then(snapshot => {
+                const userData = snapshot.val();
+                if (userData && !userData.investBonusAdded) {
+                  const currentBalance = userData.balance || 0;
+                  update(userRef, {
+                    balance: currentBalance + 0,
+                    investBonusAdded: true
+                  });
+                }
+              });
+
+            } else {
+              investStatus.innerText = "No approved investment yet.";
+              investBtn.style.display = "block";
+            }
+          } else {
+            investStatus.innerText = "No investment found.";
+            investBtn.style.display = "block";
+          }
+        });
+
+        taskBtn.onclick = () => {
+          get(ref(db, "investments/" + currentUID)).then((snap) => {
+            let approved = false;
+            if (snap.exists()) {
+              snap.forEach(child => {
+                if (child.val().status === "approved") {
+                  approved = true;
+                }
+              });
+            }
+
+            if (approved) {
+              location.href = "tasks.html";
+            } else {
+              alert("Please invest first to access tasks.");
+            }
+          });
+        };
+
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    window.logout = function () {
+      signOut(auth).then(() => {
+        window.location.href = "login.html";
+      });
+    };
+  </script>
+</body>
+</html>
