@@ -4,36 +4,30 @@
   <title>Withdraw - Online Earning</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    /* --- same CSS from your original page --- */
     * { box-sizing: border-box; }
     html, body {
       margin: 0; padding: 0;
       font-family: 'Segoe UI', sans-serif;
       background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
-      color: #fff; min-height: 100vh;
+      color: #fff;
+      min-height: 100vh;
     }
     body {
-      display: flex; justify-content: center; align-items: flex-start;
-      padding: 20px;
+      display: flex; justify-content: center; align-items: flex-start; padding: 20px;
     }
     .container {
-      background: rgba(255,255,255,0.05);
-      padding: 30px;
-      max-width: 420px;
-      width: 100%;
-      margin-top: 40px;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 30px; max-width: 420px; width: 100%;
+      margin-top: 40px; border-radius: 20px;
       box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-      border-radius: 20px;
       backdrop-filter: blur(8px);
     }
-    h2, h3 {
-      color: #00ffcc; text-align: center; margin-bottom: 20px;
-    }
+    h2, h3 { color: #00ffcc; text-align: center; margin-bottom: 20px; }
     p { font-size: 15px; margin: 8px 0; }
     input, select, button {
       width: 100%; padding: 12px; margin: 10px 0;
       font-size: 15px; border: none; border-radius: 8px;
-      outline: none; background: rgba(255,255,255,0.1); color: #fff;
+      background: rgba(255, 255, 255, 0.1); color: #fff; outline: none;
     }
     input::placeholder { color: #ccc; }
     button {
@@ -46,14 +40,15 @@
     .status-rejected { color: #ef4444; }
     .status-pending { color: #f59e0b; }
     .withdraw-item {
-      background: rgba(255,255,255,0.08);
-      border-radius: 10px; padding: 12px; margin-top: 12px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.2);
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 10px; padding: 12px;
+      margin-top: 12px; box-shadow: 0 0 8px rgba(0,0,0,0.2);
     }
-    hr {
-      border: 0; height: 1px;
-      background: #ffffff20; margin: 25px 0;
+    .referral-note {
+      font-size: 14px; color: #ccc; text-align: center;
+      margin-top: 5px; margin-bottom: 15px;
     }
+    hr { border: 0; height: 1px; background: #ffffff20; margin: 25px 0; }
     @media (max-width: 480px) {
       body { padding: 10px; }
       .container { padding: 20px 15px; margin-top: 20px; }
@@ -66,7 +61,7 @@
   <div class="container">
     <h2>Withdraw</h2>
     <p><strong>Your Balance:</strong> <span id="balance">Loading...</span> PKR</p>
-    <p><strong>Your Referrals:</strong> <span id="referrals">Loading...</span> / 6 required</p>
+    <div class="referral-note">Referrals: <span id="referralProgress">0/5</span></div>
 
     <div id="withdrawForm">
       <select id="method">
@@ -76,7 +71,7 @@
       <input type="text" id="name" placeholder="Account holder name" required>
       <input type="text" id="number" placeholder="11-digit number" maxlength="11" pattern="[0-9]{11}" required>
       <input type="number" id="amount" placeholder="Amount (300 - 3600 PKR)" required>
-      <button onclick="submitWithdraw()">Submit Withdrawal</button>
+      <button id="submitBtn" onclick="submitWithdraw()">Submit Withdrawal</button>
       <p id="status" class="message"></p>
     </div>
 
@@ -107,31 +102,54 @@
 
     let currentUser = null;
     let currentBalance = 0;
-    let currentReferrals = 0;
+    let referralCount = 0;
 
     auth.onAuthStateChanged(async (user) => {
       if (!user) return window.location.href = "login.html";
-      currentUser = user;
 
-      const userSnap = await db.ref("users/" + user.uid).get();
+      currentUser = user;
+      const uid = user.uid;
+
+      const userSnap = await db.ref("users/" + uid).get();
       if (userSnap.exists()) {
         const data = userSnap.val();
         currentBalance = parseInt(data.balance || 0) + parseInt(data.referralEarning || 0);
         document.getElementById("balance").innerText = currentBalance;
-
-        // Count successful referred users who invested
-        db.ref("users").orderByChild("referralUsed").equalTo(data.referralCode).once("value", (snap) => {
-          let count = 0;
-          snap.forEach((child) => {
-            if (child.val().hasInvested === true) count++;
-          });
-          currentReferrals = count;
-          document.getElementById("referrals").innerText = currentReferrals;
-        });
       }
 
       loadWithdrawalHistory();
+      checkReferrals(uid);
     });
+
+    function checkReferrals(uid) {
+      db.ref("referrals/" + uid).once("value", async (snap) => {
+        const data = snap.val();
+        let validCount = 0;
+
+        if (data) {
+          const values = Object.values(data);
+          for (let i = 0; i < values.length; i++) {
+            const referredUid = values[i].referredUid;
+            if (referredUid) {
+              const refSnap = await db.ref("users/" + referredUid + "/investmentStatus").get();
+              if (refSnap.exists() && refSnap.val() !== "none") {
+                validCount++;
+              }
+            }
+          }
+        }
+
+        referralCount = validCount;
+        document.getElementById("referralProgress").innerText = `${validCount}/5`;
+
+        // Disable withdraw button if not enough referrals
+        document.getElementById("submitBtn").disabled = validCount < 5;
+        if (validCount < 5) {
+          document.getElementById("status").textContent = "⚠️ You need 5 referrals with investment to withdraw.";
+          document.getElementById("status").style.color = "orange";
+        }
+      });
+    }
 
     function submitWithdraw() {
       const method = document.getElementById("method").value;
@@ -140,28 +158,32 @@
       const amount = parseInt(document.getElementById("amount").value.trim());
       const statusMsg = document.getElementById("status");
 
+      if (referralCount < 5) {
+        statusMsg.textContent = "⚠️ You must refer at least 5 users who invested.";
+        statusMsg.style.color = "red";
+        return;
+      }
+
       if (!method || !name || !number || isNaN(amount)) {
         statusMsg.textContent = "⚠️ Please fill in all fields correctly.";
         statusMsg.style.color = "red";
         return;
       }
+
       if (!/^\d{11}$/.test(number)) {
         statusMsg.textContent = "⚠️ Number must be 11 digits.";
         statusMsg.style.color = "red";
         return;
       }
+
       if (amount < 300 || amount > 3600) {
         statusMsg.textContent = "⚠️ Amount must be between 300 and 3600 PKR.";
         statusMsg.style.color = "red";
         return;
       }
+
       if (currentBalance < 100) {
         statusMsg.textContent = "⚠️ You must have at least 100 PKR to withdraw.";
-        statusMsg.style.color = "red";
-        return;
-      }
-      if (currentReferrals < 6) {
-        statusMsg.textContent = "❌ You must invite at least 6 users who invested.";
         statusMsg.style.color = "red";
         return;
       }
@@ -190,17 +212,19 @@
     function loadWithdrawalHistory() {
       const historyDiv = document.getElementById("history");
       historyDiv.innerHTML = "Loading...";
+
       db.ref("withdrawals/" + currentUser.uid).once("value", (snapshot) => {
         if (!snapshot.exists()) {
           historyDiv.innerHTML = "<p>No withdrawal history found.</p>";
           return;
         }
+
         let content = "";
         snapshot.forEach((child) => {
           const data = child.val();
-          const statusClass = data.status === "approved" ? "status-approved"
-                            : data.status === "rejected" ? "status-rejected"
-                            : "status-pending";
+          const statusClass = data.status === "approved" ? "status-approved" :
+                              data.status === "rejected" ? "status-rejected" : "status-pending";
+
           content += `
             <div class="withdraw-item">
               <p><strong>Method:</strong> ${data.method}</p>
@@ -208,8 +232,10 @@
               <p><strong>Number:</strong> ${data.number}</p>
               <p><strong>Amount:</strong> ${data.amount} PKR</p>
               <p><strong>Status:</strong> <span class="${statusClass}">${data.status}</span></p>
-            </div>`;
+            </div>
+          `;
         });
+
         historyDiv.innerHTML = content;
       });
     }
