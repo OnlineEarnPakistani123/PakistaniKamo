@@ -1,65 +1,68 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Referral - Online Earning</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
-
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-    }
+    }body {
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(to right, #74ebd5, #ACB6E5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+}
 
-    body {
-      font-family: 'Poppins', sans-serif;
-      background: linear-gradient(to right, #74ebd5, #ACB6E5);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      padding: 20px;
-    }
+.container {
+  background: #fff;
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+}
 
-    .container {
-      background: #fff;
-      padding: 30px;
-      border-radius: 15px;
-      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-      max-width: 420px;
-      width: 100%;
-      text-align: center;
-    }
+h2 {
+  margin-bottom: 20px;
+  color: #00a884;
+}
 
-    h2 {
-      margin-bottom: 20px;
-      color: #00a884;
-    }
+.info {
+  font-size: 16px;
+  margin: 12px 0;
+  color: #333;
+}
 
-    .info {
-      font-size: 16px;
-      margin: 12px 0;
-      color: #333;
-    }
+.info span {
+  font-weight: bold;
+  color: #00785f;
+}
 
-    .info span {
-      font-weight: bold;
-      color: #00785f;
-    }
+.error {
+  color: red;
+  margin-top: 10px;
+}
 
-    .error {
-      color: red;
-      margin-top: 10px;
-    }
+.referral-list {
+  margin-top: 20px;
+  text-align: left;
+}
 
-    @media (max-width: 480px) {
-      .container {
-        padding: 20px;
-      }
-    }
-        .square-back-btn {
+.referral-item {
+  background: #f3f3f3;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+}
+
+.square-back-btn {
   position: fixed;
   bottom: 20px;
   right: 20px;
@@ -93,85 +96,109 @@
     box-shadow: 0 0 0 0 rgba(0, 168, 132, 0);
   }
 }
-    
-    
+
   </style>
 </head>
 <body>
   <a href="dashboard.html" class="square-back-btn">Back</a>
-    
-<div class="container">
-  <h2>Your Referral Info</h2>
-  <div class="info">Referral Code: <span id="refCode">Loading...</span></div>
-  <div class="info">Total Referrals: <span id="refCount">0</span></div>
-  <div class="info">Referral Earnings: <span id="refEarnings">Rs 0</span></div>
-  <div class="error" id="error"></div>
-</div>
+  <div class="container">
+    <h2>Your Referral Info</h2>
+    <div class="info">Referral Code: <span id="refCode">Loading...</span></div>
+    <div class="info">Total Referrals: <span id="refCount">0</span></div>
+    <div class="info">Referral Earnings: <span id="refEarnings">Rs 0</span></div>
+    <div class="referral-list" id="referralList"></div>
+    <div class="error" id="error"></div>
+  </div>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getDatabase, ref, get, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";const firebaseConfig = {
+  apiKey: "AIzaSyCe3q7X34_6cwNvUyLZtyXupyHkpQSImts",
+  authDomain: "online-earning-pakistan-56617.firebaseapp.com",
+  databaseURL: "https://online-earning-pakistan-56617-default-rtdb.firebaseio.com",
+  projectId: "online-earning-pakistan-56617",
+  storageBucket: "online-earning-pakistan-56617.appspot.com",
+  messagingSenderId: "790184224806",
+  appId: "1:790184224806:web:1f5064d69be36bf6491ee7"
+};
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getDatabase, ref, get, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyCe3q7X34_6cwNvUyLZtyXupyHkpQSImts",
-    authDomain: "online-earning-pakistan-56617.firebaseapp.com",
-    databaseURL: "https://online-earning-pakistan-56617-default-rtdb.firebaseio.com",
-    projectId: "online-earning-pakistan-56617",
-    storageBucket: "online-earning-pakistan-56617.appspot.com",
-    messagingSenderId: "790184224806",
-    appId: "1:790184224806:web:1f5064d69be36bf6491ee7"
-  };
+const refCodeEl = document.getElementById("refCode");
+const refCountEl = document.getElementById("refCount");
+const refEarningsEl = document.getElementById("refEarnings");
+const referralList = document.getElementById("referralList");
+const errorEl = document.getElementById("error");
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getDatabase(app);
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.href = "login.html";
+    return;
+  }
 
-  const refCodeEl = document.getElementById("refCode");
-  const refCountEl = document.getElementById("refCount");
-  const refEarningsEl = document.getElementById("refEarnings");
-  const errorEl = document.getElementById("error");
+  const uid = user.uid;
+  const userRef = ref(db, "users/" + uid);
 
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      window.location.href = "login.html";
+  try {
+    const userSnap = await get(userRef);
+    if (!userSnap.exists()) {
+      errorEl.textContent = "User data not found.";
       return;
     }
 
-    const uid = user.uid;
-    const userRef = ref(db, "users/" + uid);
+    const data = userSnap.val();
+    const referralCode = data.referralCode || uid.slice(-6).toUpperCase();
 
-    try {
-      const userSnap = await get(userRef);
-      if (!userSnap.exists()) {
-        errorEl.textContent = "User data not found.";
-        return;
+    refCodeEl.textContent = referralCode;
+    refEarningsEl.textContent = "Rs " + (data.referralEarning || 0);
+
+    const referralsRef = ref(db, "referrals/" + uid);
+    onValue(referralsRef, async (snap) => {
+      const referrals = snap.val();
+      let validCount = 0;
+      referralList.innerHTML = "";
+
+      if (referrals) {
+        const uids = Object.values(referrals).map(r => r.referredUid);
+        let processed = 0;
+
+        for (const referredUid of uids) {
+          const refUserRef = ref(db, "users/" + referredUid);
+          const userSnap = await get(refUserRef);
+          processed++;
+
+          if (userSnap.exists()) {
+            const refUser = userSnap.val();
+            const status = (refUser.investmentStatus || "").toLowerCase();
+            const invested = refUser.investmentMade === true || status === "done" || status === "approved";
+
+            if (invested) {
+              validCount++;
+            }
+
+            referralList.innerHTML += `
+              <div class="referral-item">
+                <div>Email: ${refUser.email || "N/A"}</div>
+                <div>Investment: ${invested ? "✅ Done" : "❌ Not Yet"}</div>
+              </div>
+            `;
+          }
+
+          if (processed === uids.length) {
+            refCountEl.textContent = validCount;
+          }
+        }
+      } else {
+        refCountEl.textContent = 0;
       }
+    });
+  } catch (err) {
+    errorEl.textContent = err.message;
+  }
+});
 
-      const data = userSnap.val();
-      const referralCode = data.referralCode || uid.slice(-6).toUpperCase();
-
-      refCodeEl.textContent = referralCode;
-      refEarningsEl.textContent = "Rs " + (data.referralEarning || 0);
-
-      const referralsRef = ref(db, "referrals/" + uid);
-      onValue(referralsRef, (snap) => {
-        const referrals = snap.val();
-        if (referrals) {
-  const unique = new Set();
-  Object.values(referrals).forEach(ref => {
-    if (ref.referredUid) unique.add(ref.referredUid);
-  });
-  refCountEl.textContent = unique.size;
-} else {
-  refCountEl.textContent = 0;
-}
-      });
-    } catch (err) {
-      errorEl.textContent = err.message;
-    }
-  });
-</script>
-
+  </script>
 </body>
-</html>
+</html> 
