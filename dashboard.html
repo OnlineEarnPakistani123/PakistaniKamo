@@ -6,13 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Poppins', sans-serif;
       background: linear-gradient(to right, #74ebd5, #ACB6E5);
@@ -22,7 +16,6 @@
       justify-content: center;
       padding: 20px;
     }
-
     .container {
       background: #ffffff;
       padding: 40px 30px;
@@ -33,17 +26,8 @@
       text-align: center;
       transition: 0.3s ease;
     }
-
-    .container:hover {
-      transform: scale(1.01);
-    }
-
-    h2 {
-      margin-bottom: 20px;
-      color: #333;
-      font-weight: 600;
-    }
-
+    .container:hover { transform: scale(1.01); }
+    h2 { margin-bottom: 20px; color: #333; font-weight: 600; }
     .balance {
       background: #f2f2f2;
       color: #333;
@@ -53,7 +37,6 @@
       font-weight: 500;
       margin-bottom: 20px;
     }
-
     .btn {
       width: 100%;
       padding: 14px;
@@ -67,34 +50,17 @@
       cursor: pointer;
       transition: background 0.3s ease;
     }
-
-    .btn:hover {
-      background-color: #00785f;
-    }
-
-    .btn.invest {
-      background-color: #f39c12;
-    }
-
-    .btn.invest:hover {
-      background-color: #d78e0c;
-    }
-
+    .btn:hover { background-color: #00785f; }
+    .btn.invest { background-color: #f39c12; }
+    .btn.invest:hover { background-color: #d78e0c; }
     .message {
       margin-top: 12px;
       font-size: 15px;
       color: #e74c3c;
     }
-
     @media (max-width: 480px) {
-      .container {
-        padding: 30px 20px;
-      }
-
-      .btn {
-        font-size: 15px;
-        padding: 12px;
-      }
+      .container { padding: 30px 20px; }
+      .btn { font-size: 15px; padding: 12px; }
     }
   </style>
 </head>
@@ -139,8 +105,8 @@
       if (user) {
         currentUID = user.uid;
 
-        const uid = user.uid;
-        get(ref(db, "users/" + uid)).then((snapshot) => {
+        // Load balance
+        get(ref(db, "users/" + currentUID)).then((snapshot) => {
           const data = snapshot.val() || {};
           const taskBalance = data.balance || 0;
           const referralEarning = data.referralEarning || 0;
@@ -148,27 +114,50 @@
           balanceEl.innerText = totalBalance + " PKR";
         });
 
-        get(ref(db, "investments/" + uid)).then((snap) => {
+        // Check approved investment
+        get(ref(db, "investmentHistory/" + currentUID)).then((snap) => {
           if (snap.exists()) {
-            let hasApproved = false;
+            let approvedInvestment = null;
+
             snap.forEach(child => {
-              const status = child.val().status;
-              if (status === "approved") hasApproved = true;
+              const val = child.val();
+              if (val.status === "approved") {
+                approvedInvestment = val;
+              }
             });
 
-            if (hasApproved) {
+            if (approvedInvestment) {
               investStatus.innerText = "";
               investBtn.style.display = "none";
 
-              const userRef = ref(db, "users/" + uid);
+              // Add 52 PKR bonus and referral reward if not already added
+              const userRef = ref(db, "users/" + currentUID);
               get(userRef).then(snapshot => {
                 const userData = snapshot.val();
                 if (userData && !userData.investBonusAdded) {
                   const currentBalance = userData.balance || 0;
                   update(userRef, {
-                    balance: currentBalance + 0,
+                    balance: currentBalance + 52,
                     investBonusAdded: true
                   });
+
+                  // 30% referral bonus based on actual investment
+                  const referrerId = userData.referredBy;
+                  if (referrerId) {
+                    const depositAmount = parseFloat(approvedInvestment.amount || 0);
+                    const referralBonus = Math.floor(depositAmount * 0.30);
+
+                    const referrerRef = ref(db, "users/" + referrerId);
+                    get(referrerRef).then(refSnap => {
+                      if (refSnap.exists()) {
+                        const refData = refSnap.val();
+                        const currentReferralEarning = refData.referralEarning || 0;
+                        update(referrerRef, {
+                          referralEarning: currentReferralEarning + referralBonus
+                        });
+                      }
+                    });
+                  }
                 }
               });
 
@@ -182,8 +171,9 @@
           }
         });
 
+        // Start tasks
         taskBtn.onclick = () => {
-          get(ref(db, "investments/" + currentUID)).then((snap) => {
+          get(ref(db, "investmentHistory/" + currentUID)).then((snap) => {
             let approved = false;
             if (snap.exists()) {
               snap.forEach(child => {
